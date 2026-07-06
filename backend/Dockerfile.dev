@@ -1,0 +1,23 @@
+# ── Dev Image (hot reload with air) ─────────────────────────────────────────
+# This image is NOT for production. It installs air and relies on a volume-
+# mounted source tree. The binary is rebuilt inside the container on every
+# .go file change.
+FROM golang:1.25-alpine
+
+# System tools needed for compilation
+RUN apk add --no-cache git ca-certificates tzdata
+
+# Install air (hot-reload watcher)
+RUN go install github.com/air-verse/air@latest
+
+WORKDIR /app
+
+# Pre-download modules using the manifests so they are cached in a layer.
+# The actual source is provided at runtime via a bind mount.
+COPY go.mod go.sum ./
+RUN go mod download
+
+EXPOSE 8080
+
+# air reads .air.toml from the working directory
+ENTRYPOINT ["air", "-c", ".air.toml"]

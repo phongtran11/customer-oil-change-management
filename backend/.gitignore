@@ -1,0 +1,35 @@
+# ── Secrets & Environment ──────────────────────────────────────────────────────
+# Never commit any .env file (only .env.example is allowed)
+.env
+.env.*
+!.env.example
+
+# Never commit any key/cert material
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ── Go ─────────────────────────────────────────────────────────────────────────
+# Build output
+bin/
+/bin/api
+
+# Test cache & coverage
+*.out
+coverage.html
+
+# ── Air hot-reload ─────────────────────────────────────────────────────────────
+tmp/
+
+# ── Docker / Compose ───────────────────────────────────────────────────────────
+docker-compose.prod.yml
+
+# ── IDEs ───────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

@@ -1,0 +1,46 @@
+# .air.toml — air hot-reload configuration
+# Docs: https://github.com/air-verse/air
+
+[build]
+  # Command air runs to (re)build the binary on change.
+  cmd = "go build -o ./tmp/main ./cmd/api"
+
+  # The binary air executes after a successful build.
+  bin = "./tmp/main"
+
+  # Arguments passed to the binary.
+  args_bin = []
+
+  # Directories and file patterns to watch for changes.
+  include_dir = ["cmd", "internal", "migrations", "sql"]
+  include_ext = ["go", "sql", "toml", "env"]
+
+  # Directories / files to ignore (vendor, test output, the tmp dir itself).
+  exclude_dir  = ["tmp", "vendor", ".git"]
+  exclude_file = []
+  exclude_regex = ["_test\\.go$"]
+
+  # Delay (ms) after a change is detected before triggering a rebuild.
+  # Helps debounce rapid successive saves.
+  delay = 500
+
+  # Kill the running binary before starting the new one.
+  send_interrupt = true
+  kill_delay = "500ms"
+
+  # Print log when no file changes detected on watch.
+  log = "build-errors.log"
+
+[log]
+  # Show timestamps in air's own log lines.
+  time = true
+
+[color]
+  main    = "magenta"
+  watcher = "cyan"
+  build   = "yellow"
+  runner  = "green"
+
+[misc]
+  # Remove the tmp binary when air exits.
+  clean_on_exit = true
