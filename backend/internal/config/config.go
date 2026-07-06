@@ -35,6 +35,10 @@ func Load() (*Config, error) {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
+	// Bind env vars explicitly so Viper knows they exist even without a .env file
+	_ = v.BindEnv("DB_URL")
+	_ = v.BindEnv("JWT_SECRET")
+
 	// Defaults
 	v.SetDefault("SERVER_PORT", "8080")
 	v.SetDefault("ACCESS_TOKEN_EXPIRY_MINUTES", 15)
