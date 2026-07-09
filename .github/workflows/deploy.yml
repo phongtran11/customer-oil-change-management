@@ -82,6 +82,6 @@ jobs:
               docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             cd ${{ secrets.VPS_APP_DIR }}
-            docker compose -f docker-compose.prod.yml pull api
-            docker compose -f docker-compose.prod.yml up -d --no-build api
+            docker compose -f docker-compose.yml pull oil-change-api
+            docker compose -f docker-compose.yml up -d --no-build oil-change-api
             docker image prune -f
