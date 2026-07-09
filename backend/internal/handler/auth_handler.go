@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -24,15 +25,17 @@ type AuthServicer interface {
 
 // AuthHandler holds the dependencies for authentication HTTP handlers.
 type AuthHandler struct {
-	svc AuthServicer
-	log *slog.Logger
+	svc          AuthServicer
+	log          *slog.Logger
+	secureCookie bool
 }
 
 // NewAuthHandler creates a new AuthHandler.
-func NewAuthHandler(svc AuthServicer, log *slog.Logger) *AuthHandler {
+func NewAuthHandler(svc AuthServicer, log *slog.Logger, secureCookie bool) *AuthHandler {
 	return &AuthHandler{
-		svc: svc,
-		log: log,
+		svc:          svc,
+		log:          log,
+		secureCookie: secureCookie,
 	}
 }
 
@@ -90,12 +93,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 // Login godoc
 //
 //	@Summary      Login
-//	@Description  Authenticate with email and password; returns an access token and a refresh token
+//	@Description  Authenticate with email and password; returns an access token and sets a secure cookie containing a refresh token
 //	@Tags         auth
 //	@Accept       json
 //	@Produce      json
 //	@Param        request  body      dto.LoginRequest   true  "Login credentials"
-//	@Success      200      {object}  dto.LoginResponse  "Tokens returned"
+//	@Success      200      {object}  dto.LoginResponse  "Access token returned and cookie set"
 //	@Failure      400      {object}  dto.ErrorResponse  "Malformed JSON"
 //	@Failure      401      {object}  dto.ErrorResponse  "Invalid credentials"
 //	@Failure      422      {object}  dto.ErrorResponse  "Validation failed"
@@ -113,64 +116,82 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    result.RefreshToken,
+		Path:     "/",
+		Expires:  time.Now().Add(result.RefreshTokenExpiry),
+		MaxAge:   int(result.RefreshTokenExpiry.Seconds()),
+		HttpOnly: true,
+		Secure:   h.secureCookie,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	JSON(w, http.StatusOK, dto.LoginResponse{
-		AccessToken:  result.AccessToken,
-		RefreshToken: result.RefreshToken,
-		UserID:       result.User.ID.String(),
+		AccessToken: result.AccessToken,
+		UserID:      result.User.ID.String(),
 	})
 }
 
 // Refresh godoc
 //
 //	@Summary      Refresh tokens
-//	@Description  Exchange a valid refresh token for a new access token (old refresh token is revoked)
+//	@Description  Exchange a valid refresh token cookie for a new access token (old refresh token is revoked)
 //	@Tags         auth
 //	@Accept       json
 //	@Produce      json
-//	@Param        request  body      dto.RefreshRequest   true  "Refresh token"
-//	@Success      200      {object}  dto.RefreshResponse  "New tokens returned"
-//	@Failure      400      {object}  dto.ErrorResponse    "Malformed JSON"
-//	@Failure      401      {object}  dto.ErrorResponse    "Token not found, revoked, or expired"
-//	@Failure      422      {object}  dto.ErrorResponse    "Validation failed"
+//	@Success      200      {object}  dto.RefreshResponse  "New access token returned and cookie set"
+//	@Failure      401      {object}  dto.ErrorResponse    "Cookie not found, token revoked, or expired"
 //	@Router       /v1/refresh [post]
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
-	var req dto.RefreshRequest
-	if !decodeAndValidate(w, r, &req) {
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		Error(w, http.StatusUnauthorized, "missing refresh token")
 		return
 	}
+	rawRefreshToken := cookie.Value
 
-	result, err := h.svc.Refresh(r.Context(), req.RefreshToken)
+	result, err := h.svc.Refresh(r.Context(), rawRefreshToken)
 	if err != nil {
 		h.log.ErrorContext(r.Context(), "refresh failed", "error", err)
 		mapServiceError(w, err)
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    result.RefreshToken,
+		Path:     "/",
+		Expires:  time.Now().Add(result.RefreshTokenExpiry),
+		MaxAge:   int(result.RefreshTokenExpiry.Seconds()),
+		HttpOnly: true,
+		Secure:   h.secureCookie,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	JSON(w, http.StatusOK, dto.RefreshResponse{
-		AccessToken:  result.AccessToken,
-		RefreshToken: result.RefreshToken,
+		AccessToken: result.AccessToken,
 	})
 }
 
 // Logout godoc
 //
 //	@Summary      Logout
-//	@Description  Revoke a refresh token. Requires a valid JWT access token in the Authorization header.
+//	@Description  Revoke a refresh token from cookie. Requires a valid JWT access token in the Authorization header.
 //	@Tags         auth
 //	@Accept       json
 //	@Produce      json
 //	@Security     BearerAuth
-//	@Param        request  body  dto.LogoutRequest  true  "Refresh token to revoke"
-//	@Success      204      "Logged out"
-//	@Failure      400      {object}  dto.ErrorResponse  "Malformed JSON"
+//	@Success      204      "Logged out and cookie cleared"
 //	@Failure      401      {object}  dto.ErrorResponse  "Not authenticated or token not found"
-//	@Failure      422      {object}  dto.ErrorResponse  "Validation failed"
 //	@Router       /v1/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	var req dto.LogoutRequest
-	if !decodeAndValidate(w, r, &req) {
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		Error(w, http.StatusUnauthorized, "missing refresh token")
 		return
 	}
+	rawRefreshToken := cookie.Value
 
 	claims := auth.ClaimsFromContext(r.Context())
 	if claims == nil {
@@ -178,11 +199,22 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.Logout(r.Context(), claims.UserID, req.RefreshToken); err != nil {
+	if err := h.svc.Logout(r.Context(), claims.UserID, rawRefreshToken); err != nil {
 		h.log.ErrorContext(r.Context(), "logout failed", "error", err)
 		mapServiceError(w, err)
 		return
 	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   h.secureCookie,
+		SameSite: http.SameSiteLaxMode,
+	})
 
 	w.WriteHeader(http.StatusNoContent)
 }

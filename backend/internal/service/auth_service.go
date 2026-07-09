@@ -16,11 +16,11 @@ import (
 
 // Sentinel errors returned by AuthService methods.
 var (
-	ErrEmailTaken       = errors.New("email already registered")
+	ErrEmailTaken         = errors.New("email already registered")
 	ErrInvalidCredentials = errors.New("invalid email or password")
-	ErrSessionNotFound  = errors.New("session not found")
-	ErrSessionRevoked   = errors.New("session has been revoked")
-	ErrSessionExpired   = errors.New("session has expired")
+	ErrSessionNotFound    = errors.New("session not found")
+	ErrSessionRevoked     = errors.New("session has been revoked")
+	ErrSessionExpired     = errors.New("session has expired")
 )
 
 // AuthRepository is the subset of db.Querier used by AuthService.
@@ -96,9 +96,10 @@ func (s *AuthService) Register(ctx context.Context, email, password string) (*Re
 
 // LoginResult is the data returned after a successful login.
 type LoginResult struct {
-	AccessToken  string
-	RefreshToken string
-	User         db.User
+	AccessToken        string
+	RefreshToken       string
+	RefreshTokenExpiry time.Duration
+	User               db.User
 }
 
 // Login verifies credentials, generates tokens, and stores the refresh token.
@@ -125,9 +126,11 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*Login
 		return nil, fmt.Errorf("service: generate refresh token: %w", err)
 	}
 
+	hashedToken := auth.HashToken(refreshToken)
+
 	_, err = s.repo.CreateSession(ctx, db.CreateSessionParams{
 		UserID:       user.ID,
-		RefreshToken: refreshToken,
+		RefreshToken: hashedToken,
 		ExpiresAt:    time.Now().Add(s.refreshTokenExpiry),
 	})
 	if err != nil {
@@ -136,22 +139,25 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*Login
 
 	s.log.InfoContext(ctx, "user logged in", "user_id", user.ID)
 	return &LoginResult{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		User:         user,
+		AccessToken:        accessToken,
+		RefreshToken:       refreshToken,
+		RefreshTokenExpiry: s.refreshTokenExpiry,
+		User:               user,
 	}, nil
 }
 
 // RefreshResult is the data returned after a successful token refresh.
 type RefreshResult struct {
-	AccessToken  string
-	RefreshToken string // new refresh token (rotation)
+	AccessToken        string
+	RefreshToken       string // new refresh token (rotation)
+	RefreshTokenExpiry time.Duration
 }
 
 // Refresh validates the refresh token and issues a new access token.
 // It also rotates the refresh token (issues a new one, revokes the old one).
 func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*RefreshResult, error) {
-	session, err := s.repo.GetSessionByToken(ctx, refreshToken)
+	hashedToken := auth.HashToken(refreshToken)
+	session, err := s.repo.GetSessionByToken(ctx, hashedToken)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrSessionNotFound
@@ -167,7 +173,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*Refres
 	}
 
 	// Revoke the old refresh token (rotation).
-	if err := s.repo.UpdateSessionRevoked(ctx, refreshToken); err != nil {
+	if err := s.repo.UpdateSessionRevoked(ctx, hashedToken); err != nil {
 		return nil, fmt.Errorf("service: revoke old session: %w", err)
 	}
 
@@ -181,9 +187,11 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*Refres
 		return nil, fmt.Errorf("service: generate refresh token: %w", err)
 	}
 
+	newHashedToken := auth.HashToken(newRefreshToken)
+
 	_, err = s.repo.CreateSession(ctx, db.CreateSessionParams{
 		UserID:       session.UserID,
-		RefreshToken: newRefreshToken,
+		RefreshToken: newHashedToken,
 		ExpiresAt:    time.Now().Add(s.refreshTokenExpiry),
 	})
 	if err != nil {
@@ -192,14 +200,16 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*Refres
 
 	s.log.InfoContext(ctx, "tokens refreshed", "user_id", session.UserID)
 	return &RefreshResult{
-		AccessToken:  newAccessToken,
-		RefreshToken: newRefreshToken,
+		AccessToken:        newAccessToken,
+		RefreshToken:       newRefreshToken,
+		RefreshTokenExpiry: s.refreshTokenExpiry,
 	}, nil
 }
 
 // Logout revokes the given refresh token for the authenticated user.
 func (s *AuthService) Logout(ctx context.Context, userID uuid.UUID, refreshToken string) error {
-	session, err := s.repo.GetSessionByToken(ctx, refreshToken)
+	hashedToken := auth.HashToken(refreshToken)
+	session, err := s.repo.GetSessionByToken(ctx, hashedToken)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrSessionNotFound
@@ -212,7 +222,7 @@ func (s *AuthService) Logout(ctx context.Context, userID uuid.UUID, refreshToken
 		return ErrSessionNotFound
 	}
 
-	if err := s.repo.UpdateSessionRevoked(ctx, refreshToken); err != nil {
+	if err := s.repo.UpdateSessionRevoked(ctx, hashedToken); err != nil {
 		return fmt.Errorf("service: revoke session: %w", err)
 	}
 

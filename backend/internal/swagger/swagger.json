@@ -17,7 +17,7 @@
     "paths": {
         "/v1/login": {
             "post": {
-                "description": "Authenticate with email and password; returns an access token and a refresh token",
+                "description": "Authenticate with email and password; returns an access token and sets a secure cookie containing a refresh token",
                 "consumes": [
                     "application/json"
                 ],
@@ -41,7 +41,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Tokens returned",
+                        "description": "Access token returned and cookie set",
                         "schema": {
                             "$ref": "#/definitions/dto.LoginResponse"
                         }
@@ -74,7 +74,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Revoke a refresh token. Requires a valid JWT access token in the Authorization header.",
+                "description": "Revoke a refresh token from cookie. Requires a valid JWT access token in the Authorization header.",
                 "consumes": [
                     "application/json"
                 ],
@@ -85,35 +85,12 @@
                     "auth"
                 ],
                 "summary": "Logout",
-                "parameters": [
-                    {
-                        "description": "Refresh token to revoke",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.LogoutRequest"
-                        }
-                    }
-                ],
                 "responses": {
                     "204": {
-                        "description": "Logged out"
-                    },
-                    "400": {
-                        "description": "Malformed JSON",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
+                        "description": "Logged out and cookie cleared"
                     },
                     "401": {
                         "description": "Not authenticated or token not found",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Validation failed",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -123,7 +100,7 @@
         },
         "/v1/refresh": {
             "post": {
-                "description": "Exchange a valid refresh token for a new access token (old refresh token is revoked)",
+                "description": "Exchange a valid refresh token cookie for a new access token (old refresh token is revoked)",
                 "consumes": [
                     "application/json"
                 ],
@@ -134,38 +111,15 @@
                     "auth"
                 ],
                 "summary": "Refresh tokens",
-                "parameters": [
-                    {
-                        "description": "Refresh token",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.RefreshRequest"
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
-                        "description": "New tokens returned",
+                        "description": "New access token returned and cookie set",
                         "schema": {
                             "$ref": "#/definitions/dto.RefreshResponse"
                         }
                     },
-                    "400": {
-                        "description": "Malformed JSON",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
                     "401": {
-                        "description": "Token not found, revoked, or expired",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Validation failed",
+                        "description": "Cookie not found, token revoked, or expired",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -224,9 +178,646 @@
                     }
                 }
             }
+        },
+        "/v1/vehicles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all vehicles ordered by creation date descending",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "List vehicles",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.VehicleResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Register a new vehicle",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "Create a vehicle",
+                "parameters": [
+                    {
+                        "description": "Vehicle data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateVehicleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Vehicle created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.VehicleResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Malformed JSON",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "License plate already registered",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/vehicles/{vehicleID}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a vehicle by its UUID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "Get a vehicle",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Vehicle UUID",
+                        "name": "vehicleID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Vehicle found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.VehicleResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid UUID",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Vehicle not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update vehicle details by UUID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "Update a vehicle",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Vehicle UUID",
+                        "name": "vehicleID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated vehicle data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateVehicleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Vehicle updated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.VehicleResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid UUID or malformed JSON",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Vehicle not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "License plate already registered",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a vehicle and all associated oil change records by UUID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "Delete a vehicle",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Vehicle UUID",
+                        "name": "vehicleID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Vehicle deleted"
+                    },
+                    "400": {
+                        "description": "Invalid UUID",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Vehicle not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/vehicles/{vehicleID}/oil-changes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all oil change records for a vehicle, ordered by service date descending",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "oil-changes"
+                ],
+                "summary": "List oil change records",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Vehicle UUID",
+                        "name": "vehicleID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.OilChangeRecordResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid UUID",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Vehicle not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Log a new oil change service for a vehicle",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "oil-changes"
+                ],
+                "summary": "Create an oil change record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Vehicle UUID",
+                        "name": "vehicleID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Oil change data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateOilChangeRecordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Record created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.OilChangeRecordResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid UUID or malformed JSON",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Vehicle not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/vehicles/{vehicleID}/oil-changes/latest": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve the most recent oil change record for a vehicle",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "oil-changes"
+                ],
+                "summary": "Get latest oil change record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Vehicle UUID",
+                        "name": "vehicleID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Latest record",
+                        "schema": {
+                            "$ref": "#/definitions/dto.OilChangeRecordResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid UUID",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Vehicle or record not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/vehicles/{vehicleID}/oil-changes/{recordID}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific oil change record by its UUID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "oil-changes"
+                ],
+                "summary": "Get an oil change record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Vehicle UUID",
+                        "name": "vehicleID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record UUID",
+                        "name": "recordID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Record found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.OilChangeRecordResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid UUID",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a specific oil change record by its UUID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "oil-changes"
+                ],
+                "summary": "Delete an oil change record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Vehicle UUID",
+                        "name": "vehicleID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record UUID",
+                        "name": "recordID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Record deleted"
+                    },
+                    "400": {
+                        "description": "Invalid UUID",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "dto.CreateOilChangeRecordRequest": {
+            "type": "object",
+            "required": [
+                "current_mileage",
+                "service_date"
+            ],
+            "properties": {
+                "current_mileage": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 158397
+                },
+                "next_oil_filter": {
+                    "type": "string",
+                    "example": "1002"
+                },
+                "next_service_date": {
+                    "type": "string",
+                    "example": "2026-12-15T00:00:00Z"
+                },
+                "next_service_mileage": {
+                    "type": "integer",
+                    "example": 166397
+                },
+                "oil_filter": {
+                    "type": "string",
+                    "example": "1002"
+                },
+                "oil_type": {
+                    "type": "string",
+                    "example": "5W40"
+                },
+                "service_date": {
+                    "type": "string",
+                    "example": "2026-06-15T00:00:00Z"
+                }
+            }
+        },
+        "dto.CreateVehicleRequest": {
+            "type": "object",
+            "required": [
+                "license_plate",
+                "owner_name",
+                "phone_number"
+            ],
+            "properties": {
+                "license_plate": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "72A429.14"
+                },
+                "make": {
+                    "type": "string",
+                    "example": "Toyota"
+                },
+                "model": {
+                    "type": "string",
+                    "example": "Vios"
+                },
+                "owner_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Nguyễn Văn A"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "0981811837"
+                },
+                "year": {
+                    "type": "integer",
+                    "example": 2022
+                }
+            }
+        },
         "dto.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -260,37 +851,54 @@
                     "type": "string",
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 },
-                "refresh_token": {
-                    "type": "string",
-                    "example": "a3f7c2e1d4b9..."
-                },
                 "user_id": {
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 }
             }
         },
-        "dto.LogoutRequest": {
+        "dto.OilChangeRecordResponse": {
             "type": "object",
-            "required": [
-                "refresh_token"
-            ],
             "properties": {
-                "refresh_token": {
+                "created_at": {
                     "type": "string",
-                    "example": "a3f7c2e1d4b9..."
-                }
-            }
-        },
-        "dto.RefreshRequest": {
-            "type": "object",
-            "required": [
-                "refresh_token"
-            ],
-            "properties": {
-                "refresh_token": {
+                    "example": "2026-06-15T07:47:45Z"
+                },
+                "current_mileage": {
+                    "type": "integer",
+                    "example": 158397
+                },
+                "id": {
                     "type": "string",
-                    "example": "a3f7c2e1d4b9..."
+                    "example": "49b586b2-4eda-436c-9b93-33d8306e18f0"
+                },
+                "next_oil_filter": {
+                    "type": "string",
+                    "example": "1002"
+                },
+                "next_service_date": {
+                    "type": "string",
+                    "example": "2026-12-15T00:00:00Z"
+                },
+                "next_service_mileage": {
+                    "type": "integer",
+                    "example": 166397
+                },
+                "oil_filter": {
+                    "type": "string",
+                    "example": "1002"
+                },
+                "oil_type": {
+                    "type": "string",
+                    "example": "5W40"
+                },
+                "service_date": {
+                    "type": "string",
+                    "example": "2026-06-15T00:00:00Z"
+                },
+                "vehicle_id": {
+                    "type": "string",
+                    "example": "b4925809-60f5-45f7-ad6e-1f0ca0922ea9"
                 }
             }
         },
@@ -300,10 +908,6 @@
                 "access_token": {
                     "type": "string",
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                },
-                "refresh_token": {
-                    "type": "string",
-                    "example": "b8e1a4f2c6d3..."
                 }
             }
         },
@@ -337,6 +941,80 @@
                 "id": {
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "dto.UpdateVehicleRequest": {
+            "type": "object",
+            "required": [
+                "license_plate",
+                "owner_name",
+                "phone_number"
+            ],
+            "properties": {
+                "license_plate": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "72A429.14"
+                },
+                "make": {
+                    "type": "string",
+                    "example": "Toyota"
+                },
+                "model": {
+                    "type": "string",
+                    "example": "Vios"
+                },
+                "owner_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Nguyễn Văn A"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "0981811837"
+                },
+                "year": {
+                    "type": "integer",
+                    "example": 2022
+                }
+            }
+        },
+        "dto.VehicleResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-06-29T07:45:51Z"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "1b0a7a27-8b3b-475c-ac72-2ebca1a78d0a"
+                },
+                "license_plate": {
+                    "type": "string",
+                    "example": "72A429.14"
+                },
+                "make": {
+                    "type": "string",
+                    "example": "Toyota"
+                },
+                "model": {
+                    "type": "string",
+                    "example": "Vios"
+                },
+                "owner_name": {
+                    "type": "string",
+                    "example": "Nguyễn Văn A"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "0981811837"
+                },
+                "year": {
+                    "type": "integer",
+                    "example": 2022
                 }
             }
         }

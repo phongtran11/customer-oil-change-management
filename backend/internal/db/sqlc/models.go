@@ -43,14 +43,14 @@ type Vehicle struct {
 
 // OilChangeRecord represents a row in the oil_change_records table.
 type OilChangeRecord struct {
-	ID                  uuid.UUID  `json:"id"`
-	VehicleID           uuid.UUID  `json:"vehicle_id"`
-	ServiceDate         time.Time  `json:"service_date"`
-	CurrentMileage      int32      `json:"current_mileage"`
-	NextServiceMileage  *int32     `json:"next_service_mileage,omitempty"`
-	NextServiceDate     *time.Time `json:"next_service_date,omitempty"`
-	OilType             *string    `json:"oil_type,omitempty"`
-	OilFilter           *string    `json:"oil_filter,omitempty"`
-	NextOilFilter       *string    `json:"next_oil_filter,omitempty"`
-	CreatedAt           time.Time  `json:"created_at"`
+	ID                 uuid.UUID  `json:"id"`
+	VehicleID          uuid.UUID  `json:"vehicle_id"`
+	ServiceDate        time.Time  `json:"service_date"`
+	CurrentMileage     int32      `json:"current_mileage"`
+	NextServiceMileage *int32     `json:"next_service_mileage,omitempty"`
+	NextServiceDate    *time.Time `json:"next_service_date,omitempty"`
+	OilType            *string    `json:"oil_type,omitempty"`
+	OilFilter          *string    `json:"oil_filter,omitempty"`
+	NextOilFilter      *string    `json:"next_oil_filter,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
 }

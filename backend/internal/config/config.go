@@ -10,13 +10,14 @@ import (
 
 // Config holds all application configuration loaded from environment / .env file.
 type Config struct {
-	ServerPort                 string        `mapstructure:"SERVER_PORT"`
-	DBURL                      string        `mapstructure:"DB_URL"`
-	JWTSecret                  string        `mapstructure:"JWT_SECRET"`
-	AccessTokenExpiryMinutes   int           `mapstructure:"ACCESS_TOKEN_EXPIRY_MINUTES"`
-	RefreshTokenExpiryDays     int           `mapstructure:"REFRESH_TOKEN_EXPIRY_DAYS"`
-	AccessTokenExpiry          time.Duration `mapstructure:"-"`
-	RefreshTokenExpiry         time.Duration `mapstructure:"-"`
+	ServerPort               string        `mapstructure:"SERVER_PORT"`
+	DBURL                    string        `mapstructure:"DB_URL"`
+	JWTSecret                string        `mapstructure:"JWT_SECRET"`
+	AppEnv                   string        `mapstructure:"APP_ENV"`
+	AccessTokenExpiryMinutes int           `mapstructure:"ACCESS_TOKEN_EXPIRY_MINUTES"`
+	RefreshTokenExpiryDays   int           `mapstructure:"REFRESH_TOKEN_EXPIRY_DAYS"`
+	AccessTokenExpiry        time.Duration `mapstructure:"-"`
+	RefreshTokenExpiry       time.Duration `mapstructure:"-"`
 }
 
 // Load reads configuration from environment variables and an optional .env file.
@@ -38,8 +39,10 @@ func Load() (*Config, error) {
 	// Bind env vars explicitly so Viper knows they exist even without a .env file
 	_ = v.BindEnv("DB_URL")
 	_ = v.BindEnv("JWT_SECRET")
+	_ = v.BindEnv("APP_ENV")
 
 	// Defaults
+	v.SetDefault("APP_ENV", "development")
 	v.SetDefault("SERVER_PORT", "8080")
 	v.SetDefault("ACCESS_TOKEN_EXPIRY_MINUTES", 15)
 	v.SetDefault("REFRESH_TOKEN_EXPIRY_DAYS", 7)

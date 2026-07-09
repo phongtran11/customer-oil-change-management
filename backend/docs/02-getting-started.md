@@ -7,7 +7,7 @@
 | Go | 1.23 | Build & run the application |
 | Docker + Compose | 24+ | Run PostgreSQL (and optionally the API) |
 | `sqlc` | 1.27+ | Regenerate the repository layer after query changes |
-| `goose` | 3.x | Run migrations manually (optional — app runs them on startup) |
+| `goose` | 3.x | Run migrations manually (optional — app runs them on startup in development) |
 
 ---
 
@@ -62,7 +62,7 @@ You need a running PostgreSQL instance. Update `DB_URL` in `.env` to point to it
 # Install / download dependencies
 go mod download
 
-# Run the API (migrations are applied automatically on startup)
+# Run the API (migrations are applied automatically on startup when APP_ENV=development)
 go run ./cmd/api
 ```
 
@@ -70,7 +70,7 @@ go run ./cmd/api
 
 ## 4. Running Migrations Manually
 
-Migrations run automatically when the app starts. To run them manually with the `goose` CLI:
+Migrations run automatically when the app starts in development mode. To run them manually with the `goose` CLI:
 
 ```bash
 goose -dir migrations postgres "$DB_URL" up

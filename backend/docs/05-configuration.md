@@ -21,6 +21,7 @@ cp .env.example .env
 
 | Variable | Default | Required | Description |
 |---|---|:---:|---|
+| `APP_ENV` | `development` | ❌ | Environment mode (`development` or `production`). If set to `development`, database migrations will run automatically on startup. |
 | `SERVER_PORT` | `8080` | ❌ | Port the HTTP server listens on |
 
 ### Database
@@ -67,6 +68,7 @@ DB_URL=postgres://postgres:postgres@localhost:5432/oil_change_db?sslmode=disable
 
 ```env
 # Server
+APP_ENV=development
 SERVER_PORT=8080
 
 # Database

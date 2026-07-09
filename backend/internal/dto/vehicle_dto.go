@@ -28,12 +28,12 @@ type UpdateVehicleRequest struct {
 
 // VehicleResponse is the representation of a vehicle returned by the API.
 type VehicleResponse struct {
-	ID           string  `json:"id"            example:"1b0a7a27-8b3b-475c-ac72-2ebca1a78d0a"`
-	LicensePlate string  `json:"license_plate" example:"72A429.14"`
-	OwnerName    string  `json:"owner_name"    example:"Nguyễn Văn A"`
-	PhoneNumber  string  `json:"phone_number"  example:"0981811837"`
-	Make         *string `json:"make,omitempty" example:"Toyota"`
-	Model        *string `json:"model,omitempty" example:"Vios"`
-	Year         *int32  `json:"year,omitempty"  example:"2022"`
+	ID           string    `json:"id"            example:"1b0a7a27-8b3b-475c-ac72-2ebca1a78d0a"`
+	LicensePlate string    `json:"license_plate" example:"72A429.14"`
+	OwnerName    string    `json:"owner_name"    example:"Nguyễn Văn A"`
+	PhoneNumber  string    `json:"phone_number"  example:"0981811837"`
+	Make         *string   `json:"make,omitempty" example:"Toyota"`
+	Model        *string   `json:"model,omitempty" example:"Vios"`
+	Year         *int32    `json:"year,omitempty"  example:"2022"`
 	CreatedAt    time.Time `json:"created_at"  example:"2026-06-29T07:45:51Z"`
 }

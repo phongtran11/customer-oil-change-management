@@ -3,7 +3,7 @@
 ## Migration Tool
 
 Migrations are managed by [pressly/goose](https://github.com/pressly/goose) and live in `migrations/`.  
-They are applied **automatically on application startup**.
+They are applied **automatically on application startup when `APP_ENV=development`**. On production (`APP_ENV=production`), they must be run manually.
 
 Migration file naming convention: `{5-digit-sequence}_{name}.sql`
 

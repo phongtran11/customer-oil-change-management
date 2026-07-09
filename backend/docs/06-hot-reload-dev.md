@@ -86,7 +86,7 @@ Configured in [`.air.toml`](../.air.toml):
 | `migrations/` | `.sql`          |
 | `sql/`        | `.sql`, `.toml` |
 
-> Changes to `migrations/` trigger a rebuild. Because `main.go` runs `goose.Up()` on startup, migrations are re-applied (new ones only) every time the binary restarts.
+> Changes to `migrations/` trigger a rebuild. Because `main.go` runs migrations on startup when `APP_ENV=development`, new migrations are automatically applied every time the binary restarts in development.
 
 ---
 

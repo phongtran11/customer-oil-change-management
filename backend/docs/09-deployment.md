@@ -100,6 +100,7 @@ Create `/home/deploy/oil-change-app/.env`:
 
 ```bash
 # Server
+APP_ENV=production
 SERVER_PORT=8080
 
 # Database — use strong passwords, not the defaults
@@ -144,6 +145,22 @@ nano /home/deploy/oil-change-app/.env
 # Then restart the api container to pick up the new values
 cd /home/deploy/oil-change-app
 docker compose -f docker-compose.prod.yml up -d api
+```
+
+---
+
+## Database Migrations in Production
+
+When `APP_ENV` is set to `production`, the API service **does not** automatically apply SQL migrations on startup. This prevents table-locking or accidental data issues.
+
+To run migrations manually in production:
+
+```bash
+# On the VPS
+cd /home/deploy/oil-change-app
+
+# Run a one-off container to apply the migrations and exit
+docker compose -f docker-compose.prod.yml run --rm api -migrate
 ```
 
 ---

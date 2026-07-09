@@ -14,8 +14,8 @@ import (
 
 // Sentinel errors returned by VehicleService methods.
 var (
-	ErrVehicleNotFound    = errors.New("vehicle not found")
-	ErrLicensePlateTaken  = errors.New("license plate already registered")
+	ErrVehicleNotFound   = errors.New("vehicle not found")
+	ErrLicensePlateTaken = errors.New("license plate already registered")
 )
 
 // VehicleRepository is the subset of db.Querier used by VehicleService.

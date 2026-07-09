@@ -1,5 +1,61 @@
 basePath: /api
 definitions:
+  dto.CreateOilChangeRecordRequest:
+    properties:
+      current_mileage:
+        example: 158397
+        minimum: 0
+        type: integer
+      next_oil_filter:
+        example: "1002"
+        type: string
+      next_service_date:
+        example: "2026-12-15T00:00:00Z"
+        type: string
+      next_service_mileage:
+        example: 166397
+        type: integer
+      oil_filter:
+        example: "1002"
+        type: string
+      oil_type:
+        example: 5W40
+        type: string
+      service_date:
+        example: "2026-06-15T00:00:00Z"
+        type: string
+    required:
+    - current_mileage
+    - service_date
+    type: object
+  dto.CreateVehicleRequest:
+    properties:
+      license_plate:
+        example: 72A429.14
+        maxLength: 50
+        type: string
+      make:
+        example: Toyota
+        type: string
+      model:
+        example: Vios
+        type: string
+      owner_name:
+        example: Nguyễn Văn A
+        maxLength: 255
+        type: string
+      phone_number:
+        example: "0981811837"
+        maxLength: 20
+        type: string
+      year:
+        example: 2022
+        type: integer
+    required:
+    - license_plate
+    - owner_name
+    - phone_number
+    type: object
   dto.ErrorResponse:
     properties:
       error:
@@ -23,36 +79,47 @@ definitions:
       access_token:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
-      refresh_token:
-        example: a3f7c2e1d4b9...
-        type: string
       user_id:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     type: object
-  dto.LogoutRequest:
+  dto.OilChangeRecordResponse:
     properties:
-      refresh_token:
-        example: a3f7c2e1d4b9...
+      created_at:
+        example: "2026-06-15T07:47:45Z"
         type: string
-    required:
-    - refresh_token
-    type: object
-  dto.RefreshRequest:
-    properties:
-      refresh_token:
-        example: a3f7c2e1d4b9...
+      current_mileage:
+        example: 158397
+        type: integer
+      id:
+        example: 49b586b2-4eda-436c-9b93-33d8306e18f0
         type: string
-    required:
-    - refresh_token
+      next_oil_filter:
+        example: "1002"
+        type: string
+      next_service_date:
+        example: "2026-12-15T00:00:00Z"
+        type: string
+      next_service_mileage:
+        example: 166397
+        type: integer
+      oil_filter:
+        example: "1002"
+        type: string
+      oil_type:
+        example: 5W40
+        type: string
+      service_date:
+        example: "2026-06-15T00:00:00Z"
+        type: string
+      vehicle_id:
+        example: b4925809-60f5-45f7-ad6e-1f0ca0922ea9
+        type: string
     type: object
   dto.RefreshResponse:
     properties:
       access_token:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-        type: string
-      refresh_token:
-        example: b8e1a4f2c6d3...
         type: string
     type: object
   dto.RegisterRequest:
@@ -79,6 +146,61 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     type: object
+  dto.UpdateVehicleRequest:
+    properties:
+      license_plate:
+        example: 72A429.14
+        maxLength: 50
+        type: string
+      make:
+        example: Toyota
+        type: string
+      model:
+        example: Vios
+        type: string
+      owner_name:
+        example: Nguyễn Văn A
+        maxLength: 255
+        type: string
+      phone_number:
+        example: "0981811837"
+        maxLength: 20
+        type: string
+      year:
+        example: 2022
+        type: integer
+    required:
+    - license_plate
+    - owner_name
+    - phone_number
+    type: object
+  dto.VehicleResponse:
+    properties:
+      created_at:
+        example: "2026-06-29T07:45:51Z"
+        type: string
+      id:
+        example: 1b0a7a27-8b3b-475c-ac72-2ebca1a78d0a
+        type: string
+      license_plate:
+        example: 72A429.14
+        type: string
+      make:
+        example: Toyota
+        type: string
+      model:
+        example: Vios
+        type: string
+      owner_name:
+        example: Nguyễn Văn A
+        type: string
+      phone_number:
+        example: "0981811837"
+        type: string
+      year:
+        example: 2022
+        type: integer
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -95,7 +217,7 @@ paths:
       consumes:
       - application/json
       description: Authenticate with email and password; returns an access token and
-        a refresh token
+        sets a secure cookie containing a refresh token
       parameters:
       - description: Login credentials
         in: body
@@ -107,7 +229,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Tokens returned
+          description: Access token returned and cookie set
           schema:
             $ref: '#/definitions/dto.LoginResponse'
         "400":
@@ -129,30 +251,15 @@ paths:
     post:
       consumes:
       - application/json
-      description: Revoke a refresh token. Requires a valid JWT access token in the
-        Authorization header.
-      parameters:
-      - description: Refresh token to revoke
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.LogoutRequest'
+      description: Revoke a refresh token from cookie. Requires a valid JWT access
+        token in the Authorization header.
       produces:
       - application/json
       responses:
         "204":
-          description: Logged out
-        "400":
-          description: Malformed JSON
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
+          description: Logged out and cookie cleared
         "401":
           description: Not authenticated or token not found
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "422":
-          description: Validation failed
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
@@ -164,32 +271,17 @@ paths:
     post:
       consumes:
       - application/json
-      description: Exchange a valid refresh token for a new access token (old refresh
-        token is revoked)
-      parameters:
-      - description: Refresh token
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.RefreshRequest'
+      description: Exchange a valid refresh token cookie for a new access token (old
+        refresh token is revoked)
       produces:
       - application/json
       responses:
         "200":
-          description: New tokens returned
+          description: New access token returned and cookie set
           schema:
             $ref: '#/definitions/dto.RefreshResponse'
-        "400":
-          description: Malformed JSON
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Token not found, revoked, or expired
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "422":
-          description: Validation failed
+          description: Cookie not found, token revoked, or expired
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Refresh tokens
@@ -229,6 +321,367 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /v1/vehicles:
+    get:
+      description: Returns all vehicles ordered by creation date descending
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.VehicleResponse'
+            type: array
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List vehicles
+      tags:
+      - vehicles
+    post:
+      consumes:
+      - application/json
+      description: Register a new vehicle
+      parameters:
+      - description: Vehicle data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateVehicleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Vehicle created
+          schema:
+            $ref: '#/definitions/dto.VehicleResponse'
+        "400":
+          description: Malformed JSON
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: License plate already registered
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "422":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a vehicle
+      tags:
+      - vehicles
+  /v1/vehicles/{vehicleID}:
+    delete:
+      description: Delete a vehicle and all associated oil change records by UUID
+      parameters:
+      - description: Vehicle UUID
+        in: path
+        name: vehicleID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Vehicle deleted
+        "400":
+          description: Invalid UUID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Vehicle not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a vehicle
+      tags:
+      - vehicles
+    get:
+      description: Retrieve a vehicle by its UUID
+      parameters:
+      - description: Vehicle UUID
+        in: path
+        name: vehicleID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Vehicle found
+          schema:
+            $ref: '#/definitions/dto.VehicleResponse'
+        "400":
+          description: Invalid UUID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Vehicle not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a vehicle
+      tags:
+      - vehicles
+    put:
+      consumes:
+      - application/json
+      description: Update vehicle details by UUID
+      parameters:
+      - description: Vehicle UUID
+        in: path
+        name: vehicleID
+        required: true
+        type: string
+      - description: Updated vehicle data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateVehicleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Vehicle updated
+          schema:
+            $ref: '#/definitions/dto.VehicleResponse'
+        "400":
+          description: Invalid UUID or malformed JSON
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Vehicle not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: License plate already registered
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "422":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a vehicle
+      tags:
+      - vehicles
+  /v1/vehicles/{vehicleID}/oil-changes:
+    get:
+      description: Returns all oil change records for a vehicle, ordered by service
+        date descending
+      parameters:
+      - description: Vehicle UUID
+        in: path
+        name: vehicleID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.OilChangeRecordResponse'
+            type: array
+        "400":
+          description: Invalid UUID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Vehicle not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List oil change records
+      tags:
+      - oil-changes
+    post:
+      consumes:
+      - application/json
+      description: Log a new oil change service for a vehicle
+      parameters:
+      - description: Vehicle UUID
+        in: path
+        name: vehicleID
+        required: true
+        type: string
+      - description: Oil change data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateOilChangeRecordRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Record created
+          schema:
+            $ref: '#/definitions/dto.OilChangeRecordResponse'
+        "400":
+          description: Invalid UUID or malformed JSON
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Vehicle not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "422":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an oil change record
+      tags:
+      - oil-changes
+  /v1/vehicles/{vehicleID}/oil-changes/{recordID}:
+    delete:
+      description: Remove a specific oil change record by its UUID
+      parameters:
+      - description: Vehicle UUID
+        in: path
+        name: vehicleID
+        required: true
+        type: string
+      - description: Record UUID
+        in: path
+        name: recordID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Record deleted
+        "400":
+          description: Invalid UUID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an oil change record
+      tags:
+      - oil-changes
+    get:
+      description: Retrieve a specific oil change record by its UUID
+      parameters:
+      - description: Vehicle UUID
+        in: path
+        name: vehicleID
+        required: true
+        type: string
+      - description: Record UUID
+        in: path
+        name: recordID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Record found
+          schema:
+            $ref: '#/definitions/dto.OilChangeRecordResponse'
+        "400":
+          description: Invalid UUID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an oil change record
+      tags:
+      - oil-changes
+  /v1/vehicles/{vehicleID}/oil-changes/latest:
+    get:
+      description: Retrieve the most recent oil change record for a vehicle
+      parameters:
+      - description: Vehicle UUID
+        in: path
+        name: vehicleID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Latest record
+          schema:
+            $ref: '#/definitions/dto.OilChangeRecordResponse'
+        "400":
+          description: Invalid UUID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Not authenticated
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Vehicle or record not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get latest oil change record
+      tags:
+      - oil-changes
 securityDefinitions:
   BearerAuth:
     description: 'Enter your JWT token in the format: **Bearer &lt;token&gt;**'

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -48,6 +49,10 @@ func main() {
 }
 
 func run() error {
+	// ── 0. CLI Flags ──────────────────────────────────────────────────────────
+	migrateOnly := flag.Bool("migrate", false, "run database migrations and exit")
+	flag.Parse()
+
 	// ── 1. Configuration ──────────────────────────────────────────────────────
 	cfg, err := config.Load()
 	if err != nil {
@@ -60,6 +65,16 @@ func run() error {
 	}))
 	slog.SetDefault(logger)
 
+	// If -migrate flag is provided, run migrations and exit.
+	if *migrateOnly {
+		logger.Info("running migrations manually...")
+		if err := runMigrations(cfg.DBURL); err != nil {
+			return fmt.Errorf("manual migrations failed: %w", err)
+		}
+		logger.Info("manual migrations applied successfully")
+		return nil
+	}
+
 	// ── 3. Database Connection ─────────────────────────────────────────────────
 	ctx := context.Background()
 	pool, err := database.NewPool(ctx, cfg.DBURL)
@@ -70,35 +85,30 @@ func run() error {
 	logger.Info("database connected")
 
 	// ── 4. Run Migrations ──────────────────────────────────────────────────────
-	if err := runMigrations(cfg.DBURL); err != nil {
-		return fmt.Errorf("migrations: %w", err)
+	if cfg.AppEnv == "development" {
+		if err := runMigrations(cfg.DBURL); err != nil {
+			return fmt.Errorf("migrations: %w", err)
+		}
+		logger.Info("migrations applied")
+	} else {
+		logger.Info("migrations skipped (not in development environment)")
 	}
-	logger.Info("migrations applied")
 
 	// ── 5. Dependency Graph ────────────────────────────────────────────────────
 	queries := dbsqlc.New(pool)
 
-	authSvc := service.NewAuthService(
-		queries,
-		cfg.JWTSecret,
-		cfg.AccessTokenExpiry,
-		cfg.RefreshTokenExpiry,
-		logger,
-	)
+	svcs := service.NewServices(queries, service.Config{
+		JWTSecret:          cfg.JWTSecret,
+		AccessTokenExpiry:  cfg.AccessTokenExpiry,
+		RefreshTokenExpiry: cfg.RefreshTokenExpiry,
+	}, logger)
 
-	vehicleSvc := service.NewVehicleService(queries, logger)
-	oilChangeSvc := service.NewOilChangeService(queries, queries, logger)
-
-	authHandler := handler.NewAuthHandler(authSvc, logger)
-	vehicleHandler := handler.NewVehicleHandler(vehicleSvc, logger)
-	oilChangeHandler := handler.NewOilChangeHandler(oilChangeSvc, logger)
+	handlers := handler.NewHandlers(svcs, handler.Config{
+		IsProd: cfg.AppEnv != "development",
+	}, logger)
 
 	// ── 6. Router ──────────────────────────────────────────────────────────────
-	r := router.New(router.Handlers{
-		Auth:      authHandler,
-		Vehicle:   vehicleHandler,
-		OilChange: oilChangeHandler,
-	}, cfg.JWTSecret)
+	r := router.New(handlers, cfg.JWTSecret)
 
 	// ── 7. HTTP Server with Graceful Shutdown ──────────────────────────────────
 	addr := ":" + cfg.ServerPort

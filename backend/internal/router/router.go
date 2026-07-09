@@ -12,18 +12,10 @@ import (
 	"github.com/lam-thinh/customer-oil-change-management/internal/handler"
 )
 
-// Handlers bundles all HTTP handler dependencies that the router requires.
-// Add new handler types here as the API grows.
-type Handlers struct {
-	Auth      *handler.AuthHandler
-	Vehicle   *handler.VehicleHandler
-	OilChange *handler.OilChangeHandler
-}
-
 // New builds and returns the fully-configured chi router.
 // It owns all middleware setup and route registration so that main.go
 // stays minimal and testable.
-func New(h Handlers, jwtSecret string) http.Handler {
+func New(h *handler.Handlers, jwtSecret string) http.Handler {
 	r := chi.NewRouter()
 
 	// ── Global Middleware ─────────────────────────────────────────────────────

@@ -278,14 +278,14 @@ WHERE id = $1`
 // ── Oil Change Records ────────────────────────────────────────────────────────
 
 type CreateOilChangeRecordParams struct {
-	VehicleID           uuid.UUID  `json:"vehicle_id"`
-	ServiceDate         time.Time  `json:"service_date"`
-	CurrentMileage      int32      `json:"current_mileage"`
-	NextServiceMileage  *int32     `json:"next_service_mileage"`
-	NextServiceDate     *time.Time `json:"next_service_date"`
-	OilType             *string    `json:"oil_type"`
-	OilFilter           *string    `json:"oil_filter"`
-	NextOilFilter       *string    `json:"next_oil_filter"`
+	VehicleID          uuid.UUID  `json:"vehicle_id"`
+	ServiceDate        time.Time  `json:"service_date"`
+	CurrentMileage     int32      `json:"current_mileage"`
+	NextServiceMileage *int32     `json:"next_service_mileage"`
+	NextServiceDate    *time.Time `json:"next_service_date"`
+	OilType            *string    `json:"oil_type"`
+	OilFilter          *string    `json:"oil_filter"`
+	NextOilFilter      *string    `json:"next_oil_filter"`
 }
 
 func (q *Queries) CreateOilChangeRecord(ctx context.Context, arg CreateOilChangeRecordParams) (OilChangeRecord, error) {
