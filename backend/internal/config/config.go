@@ -36,22 +36,11 @@ func Load() (*Config, error) {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	// Bind env vars explicitly so Viper knows they exist even without a .env file
-	_ = v.BindEnv("DB_URL")
-	_ = v.BindEnv("JWT_SECRET")
-	_ = v.BindEnv("APP_ENV")
-
-	// Defaults
-	v.SetDefault("APP_ENV", "development")
-	v.SetDefault("SERVER_PORT", "8080")
-	v.SetDefault("ACCESS_TOKEN_EXPIRY_MINUTES", 15)
-	v.SetDefault("REFRESH_TOKEN_EXPIRY_DAYS", 7)
-
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("config: unmarshal: %w", err)
 	}
-
+	
 	// Validate required fields.
 	if cfg.DBURL == "" {
 		return nil, fmt.Errorf("config: DB_URL is required")
@@ -60,7 +49,6 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("config: JWT_SECRET is required")
 	}
 
-	// Pre-compute durations for convenience.
 	cfg.AccessTokenExpiry = time.Duration(cfg.AccessTokenExpiryMinutes) * time.Minute
 	cfg.RefreshTokenExpiry = time.Duration(cfg.RefreshTokenExpiryDays) * 24 * time.Hour
 

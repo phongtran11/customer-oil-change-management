@@ -33,3 +33,6 @@ docker-compose.prod.yml
 *.swo
 .DS_Store
 Thumbs.db
+
+# ── Temps ───────────────────────────────────────────────────────────────────────
+nginx
