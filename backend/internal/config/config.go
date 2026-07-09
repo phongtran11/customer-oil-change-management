@@ -36,6 +36,14 @@ func Load() (*Config, error) {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
+	// Bind env variables explicitly so they can be parsed even if .env is missing (e.g. inside Docker)
+	_ = v.BindEnv("SERVER_PORT")
+	_ = v.BindEnv("DB_URL")
+	_ = v.BindEnv("JWT_SECRET")
+	_ = v.BindEnv("APP_ENV")
+	_ = v.BindEnv("ACCESS_TOKEN_EXPIRY_MINUTES")
+	_ = v.BindEnv("REFRESH_TOKEN_EXPIRY_DAYS")
+
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("config: unmarshal: %w", err)
