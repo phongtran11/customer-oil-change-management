@@ -16,8 +16,8 @@ GitHub Actions (.github/workflows/deploy.yml)
   3. SSH into VPS → docker compose pull + up
         │
         ▼
-VPS (docker-compose.prod.yml)
-  postgres container  ←→  api container
+VPS (docker-compose.yml)
+  postgres container  ←→  oil-change-api container
         │
    Nginx / Caddy (reverse proxy, TLS)
         │
@@ -75,14 +75,14 @@ nano .env
 # 4. Pull and start (GitHub Actions will handle this from now on,
 #    but run it manually the first time to verify)
 echo "<GITHUB_PAT>" | docker login ghcr.io -u <your-github-username> --password-stdin
-docker pull ghcr.io/<your-github-username>/customer-oil-change-management:latest
-docker compose -f docker-compose.prod.yml up -d
+docker pull ghcr.io/<your-github-username>/customer-oil-change-management/backend:latest
+docker compose -f docker-compose.yml up -d
 ```
 
 > **Note:** `docker-compose.prod.yml` itself is NOT committed to git (it is gitignored).
-> Copy it to your VPS manually once:
+> Copy it to your VPS manually once and rename it to `docker-compose.yml` to match the deployment workflow:
 > ```bash
-> scp backend/docker-compose.prod.yml deploy@your-vps-ip:/home/deploy/oil-change-app/
+> scp backend/docker-compose.prod.yml deploy@your-vps-ip:/home/deploy/oil-change-app/docker-compose.yml
 > ```
 
 ---
@@ -115,7 +115,7 @@ JWT_SECRET=<generate-with: openssl rand -hex 32>
 ACCESS_TOKEN_EXPIRY_MINUTES=15
 REFRESH_TOKEN_EXPIRY_DAYS=7
 
-# Docker image repo (used by docker-compose.prod.yml)
+# Docker image repo (used by docker-compose.yml)
 GITHUB_REPO=<your-github-username>/customer-oil-change-management
 ```
 
@@ -144,7 +144,7 @@ nano /home/deploy/oil-change-app/.env
 
 # Then restart the api container to pick up the new values
 cd /home/deploy/oil-change-app
-docker compose -f docker-compose.prod.yml up -d api
+docker compose -f docker-compose.yml up -d oil-change-api
 ```
 
 ---
@@ -160,7 +160,7 @@ To run migrations manually in production:
 cd /home/deploy/oil-change-app
 
 # Run a one-off container to apply the migrations and exit
-docker compose -f docker-compose.prod.yml run --rm api -migrate
+docker compose -f docker-compose.yml run --rm oil-change-api -migrate
 ```
 
 ---
@@ -171,7 +171,7 @@ Every `git push` to `master` (with any change inside `backend/`) automatically:
 
 1. GitHub Actions builds the Docker image
 2. Pushes it to `ghcr.io/<your-repo>:latest` and `ghcr.io/<your-repo>:sha-<shortcommit>`
-3. SSHs into your VPS, pulls the new image, and restarts the `api` container
+3. SSHs into your VPS, pulls the new image, and restarts the `oil-change-api` container
 
 **Expected downtime:** ~3 seconds (stop old container → start new one).
 
@@ -190,7 +190,7 @@ docker images ghcr.io/<your-repo>
 
 # Override the image tag and restart
 IMAGE_TAG=sha-abc1234 \
-  docker compose -f docker-compose.prod.yml up -d api
+  docker compose -f docker-compose.yml up -d oil-change-api
 ```
 
 ---
@@ -213,6 +213,6 @@ IMAGE_TAG=sha-abc1234 \
 | File | Location | Purpose |
 |---|---|---|
 | `deploy.yml` | `.github/workflows/` in repo | GitHub Actions CI/CD pipeline |
-| `docker-compose.prod.yml` | VPS only — copied manually | Production compose (not in git) |
+| `docker-compose.prod.yml` | Local machine (not in git) | Production compose configuration (copied to VPS as `docker-compose.yml`) |
 | `.env` | VPS only — created manually | All production secrets |
 | `.env.example` | In repo | Template — safe to commit |
