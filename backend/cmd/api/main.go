@@ -34,7 +34,7 @@ import (
 //
 // @license.name  MIT
 //
-// @BasePath  customer-oil-change/api
+// @BasePath  /customer-oil-change/api
 //
 // @securityDefinitions.apikey BearerAuth
 // @in                         header
