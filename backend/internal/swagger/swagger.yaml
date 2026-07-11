@@ -1,4 +1,4 @@
-basePath: customer-oil-change/api
+basePath: /customer-oil-change/api
 definitions:
   dto.CreateOilChangeRecordRequest:
     properties:
