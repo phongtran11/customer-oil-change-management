@@ -12,7 +12,7 @@
         },
         "version": "1.0"
     },
-    "basePath": "/api",
+    "basePath": "customer-oil-change/api",
     "paths": {
         "/v1/login": {
             "post": {

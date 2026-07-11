@@ -1039,7 +1039,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
-	BasePath:         "/api",
+	BasePath:         "customer-oil-change/api",
 	Schemes:          []string{},
 	Title:            "Customer Oil Change Management API",
 	Description:      "A production-ready REST API for managing customer oil change records.",
