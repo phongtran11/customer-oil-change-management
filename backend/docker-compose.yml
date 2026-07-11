@@ -20,20 +20,29 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: oil_change_api
-    restart: unless-stopped
+    restart: no
     depends_on:
       postgres:
         condition: service_healthy
     ports:
       - "${SERVER_PORT}:8080"
+    volumes:
+      - .:/app
+      - /app/tmp
+      - go_module_cache:/go/pkg/mod
     environment:
       SERVER_PORT: ${SERVER_PORT}
-      DB_URL: ${DB_URL}
+      DB_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:${DB_PORT}/${DB_NAME}?sslmode=disable
       JWT_SECRET: ${JWT_SECRET}
       ACCESS_TOKEN_EXPIRY_MINUTES: ${ACCESS_TOKEN_EXPIRY_MINUTES}
       REFRESH_TOKEN_EXPIRY_DAYS: ${REFRESH_TOKEN_EXPIRY_DAYS}
+      CGO_ENABLED: "0"
+      GOFLAGS: ""
+      APP_ENV: ${APP_ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
 
 volumes:
   postgres_data:
+  go_module_cache:

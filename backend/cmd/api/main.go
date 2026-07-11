@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -20,26 +19,25 @@ import (
 	database "github.com/lam-thinh/customer-oil-change-management/internal/db"
 	dbsqlc "github.com/lam-thinh/customer-oil-change-management/internal/db/sqlc"
 	"github.com/lam-thinh/customer-oil-change-management/internal/handler"
+	"github.com/lam-thinh/customer-oil-change-management/internal/logger"
 	"github.com/lam-thinh/customer-oil-change-management/internal/router"
 	"github.com/lam-thinh/customer-oil-change-management/internal/service"
 	_ "github.com/lam-thinh/customer-oil-change-management/internal/swagger"
 )
 
-// @title           Customer Oil Change Management API
-// @version         1.0
-// @description     A production-ready REST API for managing customer oil change records.
+// @title						Customer Oil Change Management API
+// @version					1.0
+// @description				A production-ready REST API for managing customer oil change records.
 //
-// @contact.name   API Support
-// @contact.url    https://github.com/lam-thinh/customer-oil-change-management
+// @contact.name				API Support
+// @license.name				MIT
 //
-// @license.name  MIT
+// @BasePath					/customer-oil-change/api
 //
-// @BasePath  /customer-oil-change/api
-//
-// @securityDefinitions.apikey BearerAuth
-// @in                         header
-// @name                       Authorization
-// @description                Enter your JWT token in the format: **Bearer &lt;token&gt;**
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
+// @description				Enter your JWT token in the format: **Bearer &lt;token&gt;**
 func main() {
 	if err := run(); err != nil {
 		slog.Error("startup error", "error", err)
@@ -48,9 +46,6 @@ func main() {
 }
 
 func run() error {
-	// ── 0. CLI Flags ──────────────────────────────────────────────────────────
-	migrateOnly := flag.Bool("migrate", false, "run database migrations and exit")
-	flag.Parse()
 
 	// ── 1. Configuration ──────────────────────────────────────────────────────
 	cfg, err := config.Load()
@@ -59,38 +54,25 @@ func run() error {
 	}
 
 	// ── 2. Structured Logging ─────────────────────────────────────────────────
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-	slog.SetDefault(logger)
-
-	// If -migrate flag is provided, run migrations and exit.
-	if *migrateOnly {
-		logger.Info("running migrations manually...")
-		if err := runMigrations(cfg.DBURL); err != nil {
-			return fmt.Errorf("manual migrations failed: %w", err)
-		}
-		logger.Info("manual migrations applied successfully")
-		return nil
-	}
+	logger.Init(cfg.AppEnv, cfg.LogLevel)
 
 	// ── 3. Database Connection ─────────────────────────────────────────────────
 	ctx := context.Background()
-	pool, err := database.NewPool(ctx, cfg.DBURL)
+	pool, err := database.NewPool(ctx, cfg.DBURL, cfg.LogLevel)
 	if err != nil {
 		return fmt.Errorf("database pool: %w", err)
 	}
 	defer pool.Close()
-	logger.Info("database connected")
+	slog.Info("database connected")
 
 	// ── 4. Run Migrations ──────────────────────────────────────────────────────
 	if cfg.AppEnv == "development" {
 		if err := runMigrations(cfg.DBURL); err != nil {
 			return fmt.Errorf("migrations: %w", err)
 		}
-		logger.Info("migrations applied")
+		slog.Info("migrations applied")
 	} else {
-		logger.Info("migrations skipped (not in development environment)")
+		slog.Info("migrations skipped (not in development environment)")
 	}
 
 	// ── 5. Dependency Graph ────────────────────────────────────────────────────
@@ -100,11 +82,11 @@ func run() error {
 		JWTSecret:          cfg.JWTSecret,
 		AccessTokenExpiry:  cfg.AccessTokenExpiry,
 		RefreshTokenExpiry: cfg.RefreshTokenExpiry,
-	}, logger)
+	})
 
 	handlers := handler.NewHandlers(svcs, handler.Config{
-		IsProd: cfg.AppEnv != "development",
-	}, logger)
+		IsProd: cfg.IsProd,
+	})
 
 	// ── 6. Router ──────────────────────────────────────────────────────────────
 	r := router.New(handlers, cfg.JWTSecret)
@@ -121,7 +103,7 @@ func run() error {
 
 	serverErr := make(chan error, 1)
 	go func() {
-		logger.Info("server starting", "addr", addr)
+		slog.Info("server starting", "addr", addr)
 		serverErr <- srv.ListenAndServe()
 	}()
 
@@ -134,13 +116,13 @@ func run() error {
 			return fmt.Errorf("server error: %w", err)
 		}
 	case sig := <-quit:
-		logger.Info("shutdown signal received", "signal", sig.String())
+		slog.Info("shutdown signal received", "signal", sig.String())
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("graceful shutdown: %w", err)
 		}
-		logger.Info("server stopped gracefully")
+		slog.Info("server stopped gracefully")
 	}
 
 	return nil

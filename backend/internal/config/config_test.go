@@ -42,4 +42,7 @@ func TestLoad_EnvVars(t *testing.T) {
 	if cfg.RefreshTokenExpiryDays != 14 {
 		t.Errorf("Expected RefreshTokenExpiryDays to be %d, got %d", 14, cfg.RefreshTokenExpiryDays)
 	}
+	if cfg.LogLevel != "info" {
+		t.Errorf("Expected default LogLevel to be %q, got %q", "info", cfg.LogLevel)
+	}
 }

@@ -26,12 +26,11 @@ type OilChangeServicer interface {
 // OilChangeHandler holds the dependencies for oil change record HTTP handlers.
 type OilChangeHandler struct {
 	svc OilChangeServicer
-	log *slog.Logger
 }
 
 // NewOilChangeHandler creates a new OilChangeHandler.
-func NewOilChangeHandler(svc OilChangeServicer, log *slog.Logger) *OilChangeHandler {
-	return &OilChangeHandler{svc: svc, log: log}
+func NewOilChangeHandler(svc OilChangeServicer) *OilChangeHandler {
+	return &OilChangeHandler{svc: svc}
 }
 
 // mapOilChangeServiceError maps OilChangeService sentinel errors to HTTP responses.
@@ -66,20 +65,20 @@ func oilChangeRecordToResponse(r db.OilChangeRecord) dto.OilChangeRecordResponse
 
 // CreateOilChangeRecord godoc
 //
-//	@Summary      Create an oil change record
-//	@Description  Log a new oil change service for a vehicle
-//	@Tags         oil-changes
-//	@Accept       json
-//	@Produce      json
-//	@Security     BearerAuth
-//	@Param        vehicleID  path      string                          true  "Vehicle UUID"
-//	@Param        request    body      dto.CreateOilChangeRecordRequest true  "Oil change data"
-//	@Success      201        {object}  dto.OilChangeRecordResponse     "Record created"
-//	@Failure      400        {object}  dto.ErrorResponse               "Invalid UUID or malformed JSON"
-//	@Failure      401        {object}  dto.ErrorResponse               "Not authenticated"
-//	@Failure      404        {object}  dto.ErrorResponse               "Vehicle not found"
-//	@Failure      422        {object}  dto.ErrorResponse               "Validation failed"
-//	@Router       /v1/vehicles/{vehicleID}/oil-changes [post]
+//	@Summary		Create an oil change record
+//	@Description	Log a new oil change service for a vehicle
+//	@Tags			oil-changes
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			vehicleID	path		string								true	"Vehicle UUID"
+//	@Param			request		body		dto.CreateOilChangeRecordRequest	true	"Oil change data"
+//	@Success		201			{object}	dto.OilChangeRecordResponse			"Record created"
+//	@Failure		400			{object}	dto.ErrorResponse					"Invalid UUID or malformed JSON"
+//	@Failure		401			{object}	dto.ErrorResponse					"Not authenticated"
+//	@Failure		404			{object}	dto.ErrorResponse					"Vehicle not found"
+//	@Failure		422			{object}	dto.ErrorResponse					"Validation failed"
+//	@Router			/v1/vehicles/{vehicleID}/oil-changes [post]
 func (h *OilChangeHandler) CreateOilChangeRecord(w http.ResponseWriter, r *http.Request) {
 	vehicleID, err := uuid.Parse(chi.URLParam(r, "vehicleID"))
 	if err != nil {
@@ -103,7 +102,7 @@ func (h *OilChangeHandler) CreateOilChangeRecord(w http.ResponseWriter, r *http.
 		NextOilFilter:      req.NextOilFilter,
 	})
 	if err != nil {
-		h.log.ErrorContext(r.Context(), "create oil change record failed", "error", err)
+		slog.ErrorContext(r.Context(), "create oil change record failed", "error", err)
 		mapOilChangeServiceError(w, err)
 		return
 	}
@@ -113,17 +112,17 @@ func (h *OilChangeHandler) CreateOilChangeRecord(w http.ResponseWriter, r *http.
 
 // ListOilChangeRecords godoc
 //
-//	@Summary      List oil change records
-//	@Description  Returns all oil change records for a vehicle, ordered by service date descending
-//	@Tags         oil-changes
-//	@Produce      json
-//	@Security     BearerAuth
-//	@Param        vehicleID  path      string                        true  "Vehicle UUID"
-//	@Success      200        {array}   dto.OilChangeRecordResponse
-//	@Failure      400        {object}  dto.ErrorResponse             "Invalid UUID"
-//	@Failure      401        {object}  dto.ErrorResponse             "Not authenticated"
-//	@Failure      404        {object}  dto.ErrorResponse             "Vehicle not found"
-//	@Router       /v1/vehicles/{vehicleID}/oil-changes [get]
+//	@Summary		List oil change records
+//	@Description	Returns all oil change records for a vehicle, ordered by service date descending
+//	@Tags			oil-changes
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			vehicleID	path		string	true	"Vehicle UUID"
+//	@Success		200			{array}		dto.OilChangeRecordResponse
+//	@Failure		400			{object}	dto.ErrorResponse	"Invalid UUID"
+//	@Failure		401			{object}	dto.ErrorResponse	"Not authenticated"
+//	@Failure		404			{object}	dto.ErrorResponse	"Vehicle not found"
+//	@Router			/v1/vehicles/{vehicleID}/oil-changes [get]
 func (h *OilChangeHandler) ListOilChangeRecords(w http.ResponseWriter, r *http.Request) {
 	vehicleID, err := uuid.Parse(chi.URLParam(r, "vehicleID"))
 	if err != nil {
@@ -133,7 +132,7 @@ func (h *OilChangeHandler) ListOilChangeRecords(w http.ResponseWriter, r *http.R
 
 	records, err := h.svc.ListOilChangeRecordsByVehicle(r.Context(), vehicleID)
 	if err != nil {
-		h.log.ErrorContext(r.Context(), "list oil change records failed", "error", err)
+		slog.ErrorContext(r.Context(), "list oil change records failed", "error", err)
 		mapOilChangeServiceError(w, err)
 		return
 	}
@@ -147,17 +146,17 @@ func (h *OilChangeHandler) ListOilChangeRecords(w http.ResponseWriter, r *http.R
 
 // GetLatestOilChangeRecord godoc
 //
-//	@Summary      Get latest oil change record
-//	@Description  Retrieve the most recent oil change record for a vehicle
-//	@Tags         oil-changes
-//	@Produce      json
-//	@Security     BearerAuth
-//	@Param        vehicleID  path      string                      true  "Vehicle UUID"
-//	@Success      200        {object}  dto.OilChangeRecordResponse "Latest record"
-//	@Failure      400        {object}  dto.ErrorResponse           "Invalid UUID"
-//	@Failure      401        {object}  dto.ErrorResponse           "Not authenticated"
-//	@Failure      404        {object}  dto.ErrorResponse           "Vehicle or record not found"
-//	@Router       /v1/vehicles/{vehicleID}/oil-changes/latest [get]
+//	@Summary		Get latest oil change record
+//	@Description	Retrieve the most recent oil change record for a vehicle
+//	@Tags			oil-changes
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			vehicleID	path		string						true	"Vehicle UUID"
+//	@Success		200			{object}	dto.OilChangeRecordResponse	"Latest record"
+//	@Failure		400			{object}	dto.ErrorResponse			"Invalid UUID"
+//	@Failure		401			{object}	dto.ErrorResponse			"Not authenticated"
+//	@Failure		404			{object}	dto.ErrorResponse			"Vehicle or record not found"
+//	@Router			/v1/vehicles/{vehicleID}/oil-changes/latest [get]
 func (h *OilChangeHandler) GetLatestOilChangeRecord(w http.ResponseWriter, r *http.Request) {
 	vehicleID, err := uuid.Parse(chi.URLParam(r, "vehicleID"))
 	if err != nil {
@@ -167,7 +166,7 @@ func (h *OilChangeHandler) GetLatestOilChangeRecord(w http.ResponseWriter, r *ht
 
 	record, err := h.svc.GetLatestOilChangeRecord(r.Context(), vehicleID)
 	if err != nil {
-		h.log.ErrorContext(r.Context(), "get latest oil change record failed", "error", err)
+		slog.ErrorContext(r.Context(), "get latest oil change record failed", "error", err)
 		mapOilChangeServiceError(w, err)
 		return
 	}
@@ -177,18 +176,18 @@ func (h *OilChangeHandler) GetLatestOilChangeRecord(w http.ResponseWriter, r *ht
 
 // GetOilChangeRecord godoc
 //
-//	@Summary      Get an oil change record
-//	@Description  Retrieve a specific oil change record by its UUID
-//	@Tags         oil-changes
-//	@Produce      json
-//	@Security     BearerAuth
-//	@Param        vehicleID  path      string                      true  "Vehicle UUID"
-//	@Param        recordID   path      string                      true  "Record UUID"
-//	@Success      200        {object}  dto.OilChangeRecordResponse "Record found"
-//	@Failure      400        {object}  dto.ErrorResponse           "Invalid UUID"
-//	@Failure      401        {object}  dto.ErrorResponse           "Not authenticated"
-//	@Failure      404        {object}  dto.ErrorResponse           "Record not found"
-//	@Router       /v1/vehicles/{vehicleID}/oil-changes/{recordID} [get]
+//	@Summary		Get an oil change record
+//	@Description	Retrieve a specific oil change record by its UUID
+//	@Tags			oil-changes
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			vehicleID	path		string						true	"Vehicle UUID"
+//	@Param			recordID	path		string						true	"Record UUID"
+//	@Success		200			{object}	dto.OilChangeRecordResponse	"Record found"
+//	@Failure		400			{object}	dto.ErrorResponse			"Invalid UUID"
+//	@Failure		401			{object}	dto.ErrorResponse			"Not authenticated"
+//	@Failure		404			{object}	dto.ErrorResponse			"Record not found"
+//	@Router			/v1/vehicles/{vehicleID}/oil-changes/{recordID} [get]
 func (h *OilChangeHandler) GetOilChangeRecord(w http.ResponseWriter, r *http.Request) {
 	recordID, err := uuid.Parse(chi.URLParam(r, "recordID"))
 	if err != nil {
@@ -198,7 +197,7 @@ func (h *OilChangeHandler) GetOilChangeRecord(w http.ResponseWriter, r *http.Req
 
 	record, err := h.svc.GetOilChangeRecordByID(r.Context(), recordID)
 	if err != nil {
-		h.log.ErrorContext(r.Context(), "get oil change record failed", "error", err)
+		slog.ErrorContext(r.Context(), "get oil change record failed", "error", err)
 		mapOilChangeServiceError(w, err)
 		return
 	}
@@ -208,18 +207,18 @@ func (h *OilChangeHandler) GetOilChangeRecord(w http.ResponseWriter, r *http.Req
 
 // DeleteOilChangeRecord godoc
 //
-//	@Summary      Delete an oil change record
-//	@Description  Remove a specific oil change record by its UUID
-//	@Tags         oil-changes
-//	@Produce      json
-//	@Security     BearerAuth
-//	@Param        vehicleID  path  string  true  "Vehicle UUID"
-//	@Param        recordID   path  string  true  "Record UUID"
-//	@Success      204        "Record deleted"
-//	@Failure      400        {object}  dto.ErrorResponse  "Invalid UUID"
-//	@Failure      401        {object}  dto.ErrorResponse  "Not authenticated"
-//	@Failure      404        {object}  dto.ErrorResponse  "Record not found"
-//	@Router       /v1/vehicles/{vehicleID}/oil-changes/{recordID} [delete]
+//	@Summary		Delete an oil change record
+//	@Description	Remove a specific oil change record by its UUID
+//	@Tags			oil-changes
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			vehicleID	path	string	true	"Vehicle UUID"
+//	@Param			recordID	path	string	true	"Record UUID"
+//	@Success		204			"Record deleted"
+//	@Failure		400			{object}	dto.ErrorResponse	"Invalid UUID"
+//	@Failure		401			{object}	dto.ErrorResponse	"Not authenticated"
+//	@Failure		404			{object}	dto.ErrorResponse	"Record not found"
+//	@Router			/v1/vehicles/{vehicleID}/oil-changes/{recordID} [delete]
 func (h *OilChangeHandler) DeleteOilChangeRecord(w http.ResponseWriter, r *http.Request) {
 	recordID, err := uuid.Parse(chi.URLParam(r, "recordID"))
 	if err != nil {
@@ -228,7 +227,7 @@ func (h *OilChangeHandler) DeleteOilChangeRecord(w http.ResponseWriter, r *http.
 	}
 
 	if err := h.svc.DeleteOilChangeRecord(r.Context(), recordID); err != nil {
-		h.log.ErrorContext(r.Context(), "delete oil change record failed", "error", err)
+		slog.ErrorContext(r.Context(), "delete oil change record failed", "error", err)
 		mapOilChangeServiceError(w, err)
 		return
 	}

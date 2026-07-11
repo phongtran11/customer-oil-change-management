@@ -14,6 +14,8 @@ type Config struct {
 	DBURL                    string        `mapstructure:"DB_URL"`
 	JWTSecret                string        `mapstructure:"JWT_SECRET"`
 	AppEnv                   string        `mapstructure:"APP_ENV"`
+	IsProd                   bool          `mapstructure:"-"`
+	LogLevel                 string        `mapstructure:"LOG_LEVEL"`
 	AccessTokenExpiryMinutes int           `mapstructure:"ACCESS_TOKEN_EXPIRY_MINUTES"`
 	RefreshTokenExpiryDays   int           `mapstructure:"REFRESH_TOKEN_EXPIRY_DAYS"`
 	AccessTokenExpiry        time.Duration `mapstructure:"-"`
@@ -43,12 +45,18 @@ func Load() (*Config, error) {
 	_ = v.BindEnv("APP_ENV")
 	_ = v.BindEnv("ACCESS_TOKEN_EXPIRY_MINUTES")
 	_ = v.BindEnv("REFRESH_TOKEN_EXPIRY_DAYS")
+	_ = v.BindEnv("LOG_LEVEL")
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("config: unmarshal: %w", err)
 	}
-	
+
+	// Set default LogLevel
+	if cfg.LogLevel == "" {
+		cfg.LogLevel = "info"
+	}
+
 	// Validate required fields.
 	if cfg.DBURL == "" {
 		return nil, fmt.Errorf("config: DB_URL is required")
@@ -59,6 +67,7 @@ func Load() (*Config, error) {
 
 	cfg.AccessTokenExpiry = time.Duration(cfg.AccessTokenExpiryMinutes) * time.Minute
 	cfg.RefreshTokenExpiry = time.Duration(cfg.RefreshTokenExpiryDays) * 24 * time.Hour
+	cfg.IsProd = cfg.AppEnv == "production"
 
 	return &cfg, nil
 }

@@ -30,15 +30,13 @@ type OilChangeRepository interface {
 type OilChangeService struct {
 	repo        OilChangeRepository
 	vehicleRepo VehicleRepository
-	log         *slog.Logger
 }
 
 // NewOilChangeService creates a new OilChangeService.
-func NewOilChangeService(repo OilChangeRepository, vehicleRepo VehicleRepository, log *slog.Logger) *OilChangeService {
+func NewOilChangeService(repo OilChangeRepository, vehicleRepo VehicleRepository) *OilChangeService {
 	return &OilChangeService{
 		repo:        repo,
 		vehicleRepo: vehicleRepo,
-		log:         log,
 	}
 }
 
@@ -59,7 +57,7 @@ func (s *OilChangeService) CreateOilChangeRecord(ctx context.Context, arg db.Cre
 		return db.OilChangeRecord{}, fmt.Errorf("service: create oil change record: %w", err)
 	}
 
-	s.log.InfoContext(ctx, "oil change record created",
+	slog.InfoContext(ctx, "oil change record created",
 		"record_id", record.ID,
 		"vehicle_id", record.VehicleID,
 	)
@@ -132,6 +130,6 @@ func (s *OilChangeService) DeleteOilChangeRecord(ctx context.Context, id uuid.UU
 		return fmt.Errorf("service: delete oil change record: %w", err)
 	}
 
-	s.log.InfoContext(ctx, "oil change record deleted", "record_id", id)
+	slog.InfoContext(ctx, "oil change record deleted", "record_id", id)
 	return nil
 }

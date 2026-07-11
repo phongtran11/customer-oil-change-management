@@ -10,6 +10,7 @@ import (
 
 	"github.com/lam-thinh/customer-oil-change-management/internal/auth"
 	"github.com/lam-thinh/customer-oil-change-management/internal/handler"
+	"github.com/lam-thinh/customer-oil-change-management/internal/logger"
 )
 
 // New builds and returns the fully-configured chi router.
@@ -21,13 +22,48 @@ func New(h *handler.Handlers, jwtSecret string) http.Handler {
 	// ── Global Middleware ─────────────────────────────────────────────────────
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	r.Use(logger.Middleware)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second))
 
 	// Swagger UI
 	r.Get("/api/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("/api/swagger/doc.json"),
+		httpSwagger.BeforeScript(`const UrlMutatorPlugin = (system) => ({
+			rootInjects: {
+				setScheme: (scheme) => {
+				const jsonSpec = system.getState().toJSON().spec.json;
+				const schemes = Array.isArray(scheme) ? scheme : [scheme];
+				const newJsonSpec = Object.assign({}, jsonSpec, { schemes });
+
+				return system.specActions.updateJsonSpec(newJsonSpec);
+				},
+				setHost: (host) => {
+				const jsonSpec = system.getState().toJSON().spec.json;
+				const newJsonSpec = Object.assign({}, jsonSpec, { host });
+
+				return system.specActions.updateJsonSpec(newJsonSpec);
+				},
+				setBasePath: (basePath) => {
+				const jsonSpec = system.getState().toJSON().spec.json;
+				const newJsonSpec = Object.assign({}, jsonSpec, { basePath });
+
+				return system.specActions.updateJsonSpec(newJsonSpec);
+				}
+			}
+			});`),
+		httpSwagger.Plugins([]string{"UrlMutatorPlugin"}),
+		httpSwagger.UIConfig(map[string]string{
+			"onComplete": `() => {
+				const scheme = window.location.protocol.replace(':', '');
+				const host = window.location.host;
+				const pathname = window.location.pathname;
+				const basePath = pathname.substring(0, pathname.indexOf("/swagger"));
+				window.ui.setScheme(scheme);
+				window.ui.setHost(host);
+				window.ui.setBasePath(basePath);
+			}`,
+	}),
 	))
 
 	// ── API Routes (Versioned) ────────────────────────────────────────────────

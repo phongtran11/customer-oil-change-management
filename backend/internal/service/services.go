@@ -1,7 +1,6 @@
 package service
 
 import (
-	"log/slog"
 	"time"
 
 	db "github.com/lam-thinh/customer-oil-change-management/internal/db/sqlc"
@@ -22,16 +21,15 @@ type Services struct {
 }
 
 // NewServices initializes and registers all application services.
-func NewServices(queries *db.Queries, cfg Config, logger *slog.Logger) *Services {
+func NewServices(queries *db.Queries, cfg Config) *Services {
 	return &Services{
 		Auth: NewAuthService(
 			queries,
 			cfg.JWTSecret,
 			cfg.AccessTokenExpiry,
 			cfg.RefreshTokenExpiry,
-			logger,
 		),
-		Vehicle:   NewVehicleService(queries, logger),
-		OilChange: NewOilChangeService(queries, queries, logger),
+		Vehicle:   NewVehicleService(queries),
+		OilChange: NewOilChangeService(queries, queries),
 	}
 }

@@ -31,14 +31,12 @@ type VehicleRepository interface {
 // VehicleService contains all business logic related to vehicles.
 type VehicleService struct {
 	repo VehicleRepository
-	log  *slog.Logger
 }
 
 // NewVehicleService creates a new VehicleService.
-func NewVehicleService(repo VehicleRepository, log *slog.Logger) *VehicleService {
+func NewVehicleService(repo VehicleRepository) *VehicleService {
 	return &VehicleService{
 		repo: repo,
-		log:  log,
 	}
 }
 
@@ -58,7 +56,7 @@ func (s *VehicleService) CreateVehicle(ctx context.Context, arg db.CreateVehicle
 		return db.Vehicle{}, fmt.Errorf("service: create vehicle: %w", err)
 	}
 
-	s.log.InfoContext(ctx, "vehicle created", "vehicle_id", vehicle.ID)
+	slog.InfoContext(ctx, "vehicle created", "vehicle_id", vehicle.ID)
 	return vehicle, nil
 }
 
@@ -111,7 +109,7 @@ func (s *VehicleService) UpdateVehicle(ctx context.Context, arg db.UpdateVehicle
 		return db.Vehicle{}, fmt.Errorf("service: update vehicle: %w", err)
 	}
 
-	s.log.InfoContext(ctx, "vehicle updated", "vehicle_id", vehicle.ID)
+	slog.InfoContext(ctx, "vehicle updated", "vehicle_id", vehicle.ID)
 	return vehicle, nil
 }
 
@@ -129,6 +127,6 @@ func (s *VehicleService) DeleteVehicle(ctx context.Context, id uuid.UUID) error 
 		return fmt.Errorf("service: delete vehicle: %w", err)
 	}
 
-	s.log.InfoContext(ctx, "vehicle deleted", "vehicle_id", id)
+	slog.InfoContext(ctx, "vehicle deleted", "vehicle_id", id)
 	return nil
 }

@@ -4,6 +4,10 @@
 swag:
 	go run github.com/swaggo/swag/cmd/swag@latest init -g cmd/api/main.go -o internal/swagger
 
+# Format swagger doc comments
+swag-format:
+	go run github.com/swaggo/swag/cmd/swag@latest fmt - format swag comments
+
 # Run the API locally (without docker)
 run:
 	go run ./cmd/api

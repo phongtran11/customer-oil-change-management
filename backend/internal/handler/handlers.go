@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"log/slog"
-
 	"github.com/lam-thinh/customer-oil-change-management/internal/service"
 )
 
@@ -19,10 +17,10 @@ type Handlers struct {
 }
 
 // NewHandlers initializes and registers all application handlers.
-func NewHandlers(svcs *service.Services, cfg Config, logger *slog.Logger) *Handlers {
+func NewHandlers(svcs *service.Services, cfg Config) *Handlers {
 	return &Handlers{
-		Auth:      NewAuthHandler(svcs.Auth, logger, cfg.IsProd),
-		Vehicle:   NewVehicleHandler(svcs.Vehicle, logger),
-		OilChange: NewOilChangeHandler(svcs.OilChange, logger),
+		Auth:      NewAuthHandler(svcs.Auth, cfg.IsProd),
+		Vehicle:   NewVehicleHandler(svcs.Vehicle),
+		OilChange: NewOilChangeHandler(svcs.OilChange),
 	}
 }

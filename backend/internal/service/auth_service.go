@@ -41,7 +41,6 @@ type AuthService struct {
 	jwtSecret          string
 	accessTokenExpiry  time.Duration
 	refreshTokenExpiry time.Duration
-	log                *slog.Logger
 }
 
 // NewAuthService creates a new AuthService.
@@ -50,14 +49,12 @@ func NewAuthService(
 	jwtSecret string,
 	accessTokenExpiry time.Duration,
 	refreshTokenExpiry time.Duration,
-	log *slog.Logger,
 ) *AuthService {
 	return &AuthService{
 		repo:               repo,
 		jwtSecret:          jwtSecret,
 		accessTokenExpiry:  accessTokenExpiry,
 		refreshTokenExpiry: refreshTokenExpiry,
-		log:                log,
 	}
 }
 
@@ -90,7 +87,7 @@ func (s *AuthService) Register(ctx context.Context, email, password string) (*Re
 		return nil, fmt.Errorf("service: create user: %w", err)
 	}
 
-	s.log.InfoContext(ctx, "user registered", "user_id", user.ID)
+	slog.InfoContext(ctx, "user registered", "user_id", user.ID)
 	return &RegisterResult{User: user}, nil
 }
 
@@ -137,7 +134,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*Login
 		return nil, fmt.Errorf("service: create session: %w", err)
 	}
 
-	s.log.InfoContext(ctx, "user logged in", "user_id", user.ID)
+	slog.InfoContext(ctx, "user logged in", "user_id", user.ID)
 	return &LoginResult{
 		AccessToken:        accessToken,
 		RefreshToken:       refreshToken,
@@ -198,7 +195,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*Refres
 		return nil, fmt.Errorf("service: create new session: %w", err)
 	}
 
-	s.log.InfoContext(ctx, "tokens refreshed", "user_id", session.UserID)
+	slog.InfoContext(ctx, "tokens refreshed", "user_id", session.UserID)
 	return &RefreshResult{
 		AccessToken:        newAccessToken,
 		RefreshToken:       newRefreshToken,
@@ -226,6 +223,6 @@ func (s *AuthService) Logout(ctx context.Context, userID uuid.UUID, refreshToken
 		return fmt.Errorf("service: revoke session: %w", err)
 	}
 
-	s.log.InfoContext(ctx, "user logged out", "user_id", userID)
+	slog.InfoContext(ctx, "user logged out", "user_id", userID)
 	return nil
 }
