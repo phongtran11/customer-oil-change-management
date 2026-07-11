@@ -23,6 +23,7 @@ cp .env.example .env
 |---|---|:---:|---|
 | `APP_ENV` | `development` | ❌ | Environment mode (`development` or `production`). If set to `development`, database migrations will run automatically on startup. |
 | `SERVER_PORT` | `8080` | ❌ | Port the HTTP server listens on |
+| `LOG_LEVEL` | `info` | ❌ | Minimum logging level. Supported values: `debug`, `info`, `warn` (or `warning`), `error` (case-insensitive). |
 
 ### Database
 
@@ -70,6 +71,7 @@ DB_URL=postgres://postgres:postgres@localhost:5432/oil_change_db?sslmode=disable
 # Server
 APP_ENV=development
 SERVER_PORT=8080
+LOG_LEVEL=info # debug | info | warn | error
 
 # Database
 DB_HOST=localhost

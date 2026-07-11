@@ -102,6 +102,7 @@ Create `/home/deploy/oil-change-app/.env`:
 # Server
 APP_ENV=production
 SERVER_PORT=8080
+LOG_LEVEL=info
 
 # Database — use strong passwords, not the defaults
 DB_USER=oilchange_user

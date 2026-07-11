@@ -127,3 +127,16 @@ Expected response (`201 Created`):
   "email": "test@example.com"
 }
 ```
+
+---
+
+## 8. Swagger API Documentation
+
+Interactive Swagger documentation is auto-generated from code annotations. Once the server is running, you can access the Swagger UI directly in your browser:
+
+- **Swagger UI URL:** `http://localhost:8080/api/swagger/index.html`
+
+The Swagger UI automatically detects the environment and target URL, allowing you to test endpoints directly from the interface. When testing endpoints under **Protected Routes**, remember to authenticate first:
+1. Obtain an access token by calling the `/api/v1/login` endpoint.
+2. In Swagger UI, click the **Authorize** button at the top.
+3. Enter your token in the format: `Bearer <your_token>`.

@@ -120,6 +120,23 @@ db.Queries  (internal/db/sqlc/)  →  PostgreSQL
 
 ---
 
+## Key Features
+
+### Structured Logging & Context Tracing
+The application implements modern structured logging using Go's standard `log/slog` library:
+- **Environment-Aware Format**: Logs are formatted as human-readable **Text** in `development` for easier local debugging, and structured **JSON** in `production` for seamless ingestion into log aggregators (e.g. Loki, Elasticsearch).
+- **Request ID Propagation**: Chi's `RequestID` middleware assigns a unique ID to every HTTP request, which is automatically injected into all log records using a custom `ContextHandler` wrapper.
+- **HTTP Request Log Middleware**: A custom logging middleware outputs details for every completed HTTP request (method, path, IP, status code, response size, and latency).
+- **Database Query Tracing**: The `pgx` driver is configured with a `tracelog` tracer that maps PGX trace logs directly to the corresponding `slog` levels (`debug` level by default).
+- **Log Level Control**: Minimum logging level can be configured at startup using the `LOG_LEVEL` environment variable.
+
+### Dynamic API Documentation (Swagger)
+API endpoint specifications are documented with declarative Swagger annotations and served interactively via Swagger UI:
+- **Interactive UI**: Served at `/api/swagger/index.html`.
+- **Dynamic Configuration**: Employs a custom Swagger UI plugin to automatically resolve HTTP scheme, host, and basePath from the user's browser location. This eliminates hardcoded hosts and allows the Swagger UI to function out-of-the-box in local development, staging, or production environments.
+
+---
+
 ## Quick Start
 
 See [02-getting-started.md](./02-getting-started.md) for setup instructions.
