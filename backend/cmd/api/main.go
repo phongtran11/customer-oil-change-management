@@ -34,7 +34,6 @@ import (
 //
 // @license.name  MIT
 //
-// @host      localhost:8080
 // @BasePath  /api
 //
 // @securityDefinitions.apikey BearerAuth
